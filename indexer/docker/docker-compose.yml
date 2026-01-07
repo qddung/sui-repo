@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: suimeet-postgres
+    environment:
+      POSTGRES_USER: suimeet
+      POSTGRES_PASSWORD: suimeet_password
+      POSTGRES_DB: suimeet_indexer
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U suimeet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - suimeet-network
+
+  # Backend API
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    container_name: suimeet-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://suimeet:suimeet_password@postgres:5432/suimeet_indexer
+      
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-7d}
+      
+      # Session Configuration
+      SESSION_MAX_AGE: ${SESSION_MAX_AGE:-86400000}
+      EPHEMERAL_KEY_EXPIRES_IN: ${EPHEMERAL_KEY_EXPIRES_IN:-1800000}
+      
+      # Sui Configuration
+      SUI_NETWORK: ${SUI_NETWORK:-testnet}
+      SUI_PACKAGE_ID: ${SUI_PACKAGE_ID:-}
+      SUI_CLOCK_OBJECT_ID: ${SUI_CLOCK_OBJECT_ID:-0x6}
+      
+      # Server Configuration
+      PORT: 3001
+      NODE_ENV: ${NODE_ENV:-production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://frontend:3000}
+      
+      # Encryption
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+    ports:
+      - "3001:3001"
+    networks:
+      - suimeet-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Next.js App
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
+        NEXT_PUBLIC_PACKAGE_ID: ${NEXT_PUBLIC_PACKAGE_ID:-}
+        NEXT_PUBLIC_REGISTRY_ID: ${NEXT_PUBLIC_REGISTRY_ID:-}
+        NEXT_PUBLIC_NETWORK: ${NEXT_PUBLIC_NETWORK:-testnet}
+        NEXT_PUBLIC_SUI_RPC_URL: ${NEXT_PUBLIC_SUI_RPC_URL:-https://fullnode.testnet.sui.io:443}
+        NEXT_PUBLIC_WALRUS_ENDPOINT: ${NEXT_PUBLIC_WALRUS_ENDPOINT:-https://api.walrus.network}
+    container_name: suimeet-frontend
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:3001/api}
+      NEXT_PUBLIC_PACKAGE_ID: ${NEXT_PUBLIC_PACKAGE_ID:-}
+      NEXT_PUBLIC_REGISTRY_ID: ${NEXT_PUBLIC_REGISTRY_ID:-}
+      NEXT_PUBLIC_NETWORK: ${NEXT_PUBLIC_NETWORK:-testnet}
+      NEXT_PUBLIC_SUI_RPC_URL: ${NEXT_PUBLIC_SUI_RPC_URL:-https://fullnode.testnet.sui.io:443}
+      NEXT_PUBLIC_WALRUS_ENDPOINT: ${NEXT_PUBLIC_WALRUS_ENDPOINT:-https://api.walrus.network}
+    ports:
+      - "3000:3000"
+    networks:
+      - suimeet-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  suimeet-network:
+    driver: bridge
+

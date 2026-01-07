@@ -1,0 +1,87 @@
+// Prisma schema for SuiMeet Indexer
+// Matches the Rust indexer's database schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Meeting Rooms Table
+model MeetingRoom {
+  id                       BigInt   @id @default(autoincrement())
+  roomId                   String   @unique @map("room_id") @db.VarChar(66)
+  title                    String   @db.Text
+  hosts                    String[] @db.VarChar(66) // Array of host addresses
+  sealPolicyId             String   @unique @map("seal_policy_id") @db.VarChar(66)
+  status                   Int      @db.SmallInt // 1=scheduled, 2=active, 3=ended
+  maxParticipants          BigInt   @map("max_participants")
+  requireApproval          Boolean  @map("require_approval")
+  participantCount         Int      @map("participant_count")
+  createdAt                BigInt   @map("created_at") // Unix timestamp from chain
+  startedAt                BigInt?  @map("started_at") // Unix timestamp from chain
+  endedAt                  BigInt?  @map("ended_at") // Unix timestamp from chain
+  checkpointSequenceNumber BigInt   @map("checkpoint_sequence_number")
+  transactionDigest        String   @map("transaction_digest") @db.VarChar(64)
+  indexedAt                DateTime @default(now()) @map("indexed_at")
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  participants RoomParticipant[]
+  metadata     RoomMetadata?
+
+  @@index([roomId])
+  @@index([status])
+  @@index([sealPolicyId])
+  @@index([createdAt(sort: Desc)])
+  @@index([checkpointSequenceNumber])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("meeting_rooms")
+}
+
+// Room Participants Table
+model RoomParticipant {
+  id                 BigInt    @id @default(autoincrement())
+  roomId             String    @map("room_id") @db.VarChar(66)
+  participantAddress String    @map("participant_address") @db.VarChar(66)
+  role               String    @db.VarChar(20) // "HOST" or "PARTICIPANT"
+  adminCapId         String?   @map("admin_cap_id") @db.VarChar(66)
+  joinedAt           DateTime  @default(now()) @map("joined_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  meetingRoom MeetingRoom @relation(fields: [roomId], references: [roomId], onDelete: Cascade)
+
+  @@unique([roomId, participantAddress])
+  @@index([roomId])
+  @@index([participantAddress])
+  @@index([roomId, role])
+  @@index([adminCapId])
+  @@index([participantAddress, roomId])
+  @@map("room_participants")
+}
+
+// Room Metadata Table (Dynamic Fields)
+model RoomMetadata {
+  id              BigInt    @id @default(autoincrement())
+  roomId          String    @unique @map("room_id") @db.VarChar(66)
+  dynamicFieldId  String    @unique @map("dynamic_field_id") @db.VarChar(66)
+  dfVersion       BigInt    @map("df_version")
+  language        String    @db.Text
+  timezone        String    @db.Text
+  recordingBlobId Decimal?  @map("recording_blob_id") @db.Decimal(78, 0) // u256 as NUMERIC
+  indexedAt       DateTime  @default(now()) @map("indexed_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  meetingRoom MeetingRoom @relation(fields: [roomId], references: [roomId], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([dynamicFieldId])
+  @@index([recordingBlobId])
+  @@map("room_metadata")
+}
+

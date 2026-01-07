@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: suimeet-indexer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-suimeet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-suimeet_password}
+      POSTGRES_DB: ${POSTGRES_DB:-suimeet_indexer}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - suimeet-network
+
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: suimeet-indexer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-suimeet}:${POSTGRES_PASSWORD:-suimeet_password}@postgres:5432/${POSTGRES_DB:-suimeet_indexer}
+      SUIMEET_PACKAGE_ID: ${SUIMEET_PACKAGE_ID:-}
+      SUI_RPC_URL: ${SUI_RPC_URL:-https://fullnode.testnet.sui.io:443}
+      SUI_NETWORK: ${SUI_NETWORK:-testnet}
+      CHECKPOINT_BUFFER_SIZE: ${CHECKPOINT_BUFFER_SIZE:-5000}
+      INGEST_CONCURRENCY: ${INGEST_CONCURRENCY:-200}
+      RETRY_INTERVAL_MS: ${RETRY_INTERVAL_MS:-200}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NODE_ENV: ${NODE_ENV:-production}
+    networks:
+      - suimeet-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  suimeet-network:
+    driver: bridge
+
