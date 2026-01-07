@@ -16,9 +16,12 @@
 [submodule "cetus-clmm-sdk"]
 	path = research/cetus-clmm-sdk
 	url = https://github.com/CetusProtocol/cetus-clmm-sdk
-[submodule "overflow-voting-app"]
+[submodule "research/cetus-clmm-sdk"]
+	path = research/cetus-clmm-sdk
+	url = https://github.com/CetusProtocol/cetus-clmm-sdk
+[submodule "research/overflow-voting-app"]
 	path = research/overflow-voting-app
 	url = https://github.com/sui-foundation/overflow-voting-app
-[submodule "sui-dapp-scaffold-v1"]
+[submodule "research/sui-dapp-scaffold-v1"]
 	path = research/sui-dapp-scaffold-v1
 	url = https://github.com/Bucket-Protocol/sui-dapp-scaffold-v1
