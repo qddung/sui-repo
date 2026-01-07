@@ -1,0 +1,24 @@
+[submodule "FirstMoveSprint"]
+	path = FirstMoveSprint
+	url = https://github.com/qddung/FirstMoveSprint
+[submodule "zoom-sui"]
+	path = zoom-sui
+	url = https://github.com/danniel-tran/zoom-sui
+[submodule "ticket-decentralize"]
+	path = ticket-decentralize
+	url = https://github.com/danniel-tran/ticket-decentralize
+[submodule "file-frontend"]
+	path = file-frontend
+	url = https://github.com/sui-workspace/file-frontend
+[submodule "subsciption-manager"]
+	path = subsciption-manager
+	url = https://github.com/sui-workspace/subsciption-manager
+[submodule "cetus-clmm-sdk"]
+	path = research/cetus-clmm-sdk
+	url = https://github.com/CetusProtocol/cetus-clmm-sdk
+[submodule "overflow-voting-app"]
+	path = research/overflow-voting-app
+	url = https://github.com/sui-foundation/overflow-voting-app
+[submodule "sui-dapp-scaffold-v1"]
+	path = research/sui-dapp-scaffold-v1
+	url = https://github.com/Bucket-Protocol/sui-dapp-scaffold-v1
